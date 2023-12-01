@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package main;
+
+option go_package = "./pb";
+
+import "proto/memory_message.proto";
+
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+    string role = 5;
+    string createdAt = 6;
+    string updatedAt = 7;
+}
+
+message UserList {
+    repeated User users = 1;
+}
+
+message Product {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string price = 4;
+    string createdAt = 5;
+    string updatedAt = 6;
+}
+
+message ProductList {
+    repeated Product products = 1;
+}
+
+message CPU {
+    string brand = 1;
+    string name = 2;
+    uint32 number_cores = 3;
+    uint32 number_threads = 4;
+    double max_ghz = 5;
+    double min_ghz = 6;
+}
+
+message GPU {
+    string brand = 1;
+    string name = 2;
+    double min_ghz = 3;
+    double max_ghz = 4;
+    Memory memory = 5;
+}

@@ -1,0 +1,62 @@
+{
+  "id": "fba549de-e71f-4a07-a99f-ff235ce7ab15",
+  "brand": "Lenovo",
+  "name": "Thinkpad X1",
+  "cpu": {
+    "brand": "AMD",
+    "name": "Ryzen 5 PRO 3500U",
+    "number_cores": 3,
+    "number_threads": 12,
+    "max_ghz": 2.8030548128264536,
+    "min_ghz": 2.5818592247037424
+  },
+  "ram": {
+    "value": "21",
+    "unit": "GIGABYTE"
+  },
+  "gpus": [
+    {
+      "brand": "AMD",
+      "name": "RX Vega-56",
+      "min_ghz": 1.4194549331611386,
+      "max_ghz": 1.6178133644754231,
+      "memory": {
+        "value": "5",
+        "unit": "GIGABYTE"
+      }
+    }
+  ],
+  "storages": [
+    {
+      "driver": "SSD",
+      "memory": {
+        "value": "336",
+        "unit": "GIGABYTE"
+      }
+    },
+    {
+      "driver": "HDD",
+      "memory": {
+        "value": "6",
+        "unit": "TERABYTE"
+      }
+    }
+  ],
+  "screen": {
+    "size_inch": 15.139425,
+    "resolution": {
+      "width": 4730,
+      "height": 2661
+    },
+    "panel": "OLED",
+    "multitouch": true
+  },
+  "keyboard": {
+    "layout": "AZERTY",
+    "backlit": true
+  },
+  "weight_kg": 1.1717875236386657,
+  "price_usd": 1919.6746720955357,
+  "release_year": 2015,
+  "updated_at": "2023-11-27T17:16:07.683287Z"
+}
