@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/ducthangng/drl/bucket"
@@ -20,6 +21,7 @@ func main() {
 
 	// Start token refill in the background
 	limiter := bucket.GetLimiter()
+	log.Println(&limiter)
 
 	// create a gprc server to listen
 	grpcServer := grpc.NewServer(

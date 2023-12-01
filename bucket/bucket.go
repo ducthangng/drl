@@ -2,6 +2,7 @@ package bucket
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -14,6 +15,7 @@ var Limiter *DistributedRateLimiter
 
 // DistributedRateLimiter represents a distributed rate limiter using Token Bucket algorithm
 type DistributedRateLimiter struct {
+	Mutext      sync.Mutex
 	RedisClient *redis.Client
 	Capacity    int
 	Tokens      int
@@ -42,6 +44,9 @@ func (limiter *DistributedRateLimiter) RefillTokens() {
 
 // addToken adds a token to the bucket
 func (limiter *DistributedRateLimiter) addToken() {
+	limiter.Mutext.Lock()
+	defer limiter.Mutext.Unlock()
+
 	limiter.Tokens++
 	if limiter.Tokens > limiter.Capacity {
 		limiter.Tokens = limiter.Capacity
@@ -50,16 +55,21 @@ func (limiter *DistributedRateLimiter) addToken() {
 
 // ConsumeToken checks if there is at least one token in the bucket, and consumes it
 func (limiter *DistributedRateLimiter) ConsumeToken() bool {
+	limiter.Mutext.Lock()
+	defer limiter.Mutext.Unlock()
+
 	if limiter.Tokens > 0 {
 		limiter.Tokens--
 		return true
 	}
+
 	return false
 }
 
 // Middleware is a middleware function for HTTP handlers to enforce rate limiting
 func (limiter *DistributedRateLimiter) UnaryServerInterceptor(
 	ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+
 	if limiter.ConsumeToken() {
 		return handler(ctx, req)
 	}
@@ -82,7 +92,9 @@ func SetUp() {
 	})
 
 	// Create DistributedRateLimiter
-	limiter := NewDistributedRateLimiter(redisClient, 10, 2)
+	limiter := NewDistributedRateLimiter(redisClient, 10, 1)
+
+	Limiter = limiter
 
 	// Start token refill in the background
 	go limiter.RefillTokens()

@@ -23,6 +23,7 @@ func main() {
 	laptopServer := service.NewLaptopServer(service.NewInMemoryLaptopStore())
 
 	limiter := bucket.GetLimiter()
+	log.Println(&limiter)
 
 	// Set up gRPC server
 	grpcServer := grpc.NewServer(
@@ -31,6 +32,7 @@ func main() {
 				limiter.UnaryServerInterceptor,
 			),
 		),
+
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
 				limiter.StreamServerInterceptor,

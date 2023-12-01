@@ -24,7 +24,7 @@ func NewLaptopServer(store LaptopStore) *LaptopServer {
 
 func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
 	laptop := req.GetLaptop()
-	log.Printf("receive a create-laptop request with id: %s", laptop.Id)
+	log.Printf("receive request with id: %s", laptop.Id[:5])
 
 	// check if id is valid
 	if len(laptop.Id) > 0 {
