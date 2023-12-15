@@ -43,12 +43,7 @@ func main() {
 		{
 			Title:   "server 1",
 			Address: "localhost:8081",
-			Conn:    newConn("localhost:8081"),
-		},
-		{
-			Title:   "server 1",
-			Address: "localhost:8082",
-			Conn:    newConn("localhost:8082"),
+			Conn:    newConn("localhost:8080"),
 		},
 	}...)
 

@@ -12,17 +12,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type RateLimiter struct {
+type SlidingWindowRateLimiter struct {
 	client  *redis.Client
 	limit   int
 	window  time.Duration
 	context context.Context
 }
 
-var Limiter *RateLimiter
+var Limiter *SlidingWindowRateLimiter
 
-func NewRateLimiter(client *redis.Client, limit int, window time.Duration) *RateLimiter {
-	return &RateLimiter{
+func NewRateLimiter(client *redis.Client, limit int, window time.Duration) *SlidingWindowRateLimiter {
+	return &SlidingWindowRateLimiter{
 		client:  client,
 		limit:   limit,
 		window:  window,
@@ -30,7 +30,7 @@ func NewRateLimiter(client *redis.Client, limit int, window time.Duration) *Rate
 	}
 }
 
-func (rl *RateLimiter) IsAllowed(key string) (bool, error) {
+func (rl *SlidingWindowRateLimiter) IsAllowed(key string) (bool, error) {
 	ctx := rl.context
 	now := time.Now()
 
@@ -65,7 +65,7 @@ func (rl *RateLimiter) IsAllowed(key string) (bool, error) {
 	return count <= int64(rl.limit), nil
 }
 
-func (limiter *RateLimiter) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func (limiter *SlidingWindowRateLimiter) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -92,7 +92,7 @@ func SetUp() {
 	// Start token refill in the background
 }
 
-func GetLimiter() *RateLimiter {
+func GetLimiter() *SlidingWindowRateLimiter {
 	if Limiter == nil {
 		SetUp()
 	}
