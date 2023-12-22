@@ -10,11 +10,11 @@ clean:
 
 server:
 	redis-cli flushall
-	go run cmd/server/main.8080.go --prt 8081
+	go run cmd/server/main.8080.go --port 8081
 
-server2:
+server1:
 	redis-cli flushall
-	go run cmd/server/main.8080.go --prt 8082
+	go run cmd/server/main.8080.go --port 8082
 
 client:
 	go run cmd/client/main.go

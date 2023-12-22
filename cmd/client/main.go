@@ -43,20 +43,31 @@ func main() {
 		{
 			Title:   "server 1",
 			Address: "localhost:8081",
-			Conn:    newConn("localhost:8080"),
+			Conn:    newConn("localhost:8081"),
+		},
+		{
+			Title:   "server 2",
+			Address: "localhost:8082",
+			Conn:    newConn("localhost:8082"),
 		},
 	}...)
 
+	// redisClient := getRedisClient()
+
+	// Test Case 1: Request Allowed
+	// Assume enough tokens are available
+	// initially, all of the tokens are available and be tick periodically according to the refill rate.
+	// thus, I will run the below-10 test-case first, this should work fine
+	fmt.Println("Start test case 1")
 	var wg sync.WaitGroup
 	for _, conn := range conns {
 		cli := pb.NewLaptopServiceClient(conn.Conn)
-		for i := 0; i < 200; i++ {
+		for i := 0; i < 6; i++ {
 			wg.Add(1)
 			go func(c Conn, idx int) {
 				defer wg.Done()
-				// Sleep is generally used for simulation or debugging
 				time.Sleep(time.Duration(idx) * 100 * time.Millisecond)
-				log.Println("start requesting: ", idx)
+				log.Println("start requesting: ", idx, "----to server :", c.Title)
 				createLaptop(cli, fmt.Sprintf("%d-%s", idx, uuid.NewString()))
 			}(conn, i)
 		}
@@ -64,28 +75,36 @@ func main() {
 
 	wg.Wait()
 	fmt.Println("All create successfully")
+	fmt.Println("----------------------------------------------------")
+	fmt.Println("Starting test case 2, wait for 10 seconds to refill the token")
+	time.Sleep(10 * time.Second)
 
-	// wg.Add(len(conns))
-	// // for _, conn := range conns {
-	// // 	go func(conn Conn) {
-	// // 		defer wg.Done()
+	// Test Case 2: Request Allow Periodically Over Time
+	// The server refills at the rate of 1 token per second.
+	fmt.Println("Start test case 2")
+	for _, conn := range conns {
+		cli := pb.NewLaptopServiceClient(conn.Conn)
+		for i := 0; i < 100; i++ {
+			wg.Add(1)
+			go func(c Conn, idx int) {
+				defer wg.Done()
+				// Wait for a period based on the refill rate to ensure token availability
+				time.Sleep(time.Millisecond * 1000 * time.Duration(idx))
 
-	// // 		filter := &pb.Filter{
-	// // 			MaxPriceUsd: 10000,
-	// // 			MinCpuCore:  2,
-	// // 			MinCpuGhz:   1,
-	// // 			MinRam: &pb.Memory{
-	// // 				Value: 2,
-	// // 				Unit:  pb.Memory_GIGABYTE,
-	// // 			},
-	// // 		}
+				log.Println("start requesting: ", idx, "----to server :", c.Title)
+				createLaptop(cli, fmt.Sprintf("%d-%s", idx, uuid.NewString()))
+			}(conn, i)
+		}
+	}
 
-	// // 		searchLaptop(conn.Client, filter, conn.Title)
-	// // 	}(conn)
-	// // }
+	wg.Wait()
+	fmt.Println("All requests processed")
+	fmt.Println("----------------------------------------------------")
 
-	// // wg.Wait()
-	fmt.Println("All requests completed")
+	// Test Case 3: Change the Refill Rate while Token Refill Over Time
+	// write to check if the refill rate is changed
+	// then, proceed to make several request to check if the request is allowed or denied
+
 }
 
 func searchLaptop(laptopClient pb.LaptopServiceClient, filter *pb.Filter, id string) {
@@ -133,11 +152,11 @@ func createLaptop(laptopClient pb.LaptopServiceClient, id string) {
 		if ok && st.Code() == codes.AlreadyExists {
 			log.Println("laptop already exist")
 		} else {
-			log.Println("unexpected error: ", st.Message())
+			log.Println("request failed: ", st.Message())
 		}
 
 		return
 	}
 
-	log.Printf("created laptop with id: %s", res.Id)
+	log.Printf("request success: %s", res.Id)
 }

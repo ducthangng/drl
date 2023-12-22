@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LaptopServiceClient interface {
 	CreateLaptop(ctx context.Context, in *CreateLaptopRequest, opts ...grpc.CallOption) (*CreateLaptopResponse, error)
+	IncreaseViewCount(ctx context.Context, in *IncreaseViewCountRequest, opts ...grpc.CallOption) (*IncreaseViewCountResponse, error)
 	SearchLaptop(ctx context.Context, in *SearchLaptopRequest, opts ...grpc.CallOption) (LaptopService_SearchLaptopClient, error)
 }
 
@@ -37,6 +38,15 @@ func NewLaptopServiceClient(cc grpc.ClientConnInterface) LaptopServiceClient {
 func (c *laptopServiceClient) CreateLaptop(ctx context.Context, in *CreateLaptopRequest, opts ...grpc.CallOption) (*CreateLaptopResponse, error) {
 	out := new(CreateLaptopResponse)
 	err := c.cc.Invoke(ctx, "/main.LaptopService/CreateLaptop", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *laptopServiceClient) IncreaseViewCount(ctx context.Context, in *IncreaseViewCountRequest, opts ...grpc.CallOption) (*IncreaseViewCountResponse, error) {
+	out := new(IncreaseViewCountResponse)
+	err := c.cc.Invoke(ctx, "/main.LaptopService/IncreaseViewCount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +90,7 @@ func (x *laptopServiceSearchLaptopClient) Recv() (*SearchLaptopResponse, error) 
 // for forward compatibility
 type LaptopServiceServer interface {
 	CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error)
+	IncreaseViewCount(context.Context, *IncreaseViewCountRequest) (*IncreaseViewCountResponse, error)
 	SearchLaptop(*SearchLaptopRequest, LaptopService_SearchLaptopServer) error
 	mustEmbedUnimplementedLaptopServiceServer()
 }
@@ -90,6 +101,9 @@ type UnimplementedLaptopServiceServer struct {
 
 func (UnimplementedLaptopServiceServer) CreateLaptop(context.Context, *CreateLaptopRequest) (*CreateLaptopResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateLaptop not implemented")
+}
+func (UnimplementedLaptopServiceServer) IncreaseViewCount(context.Context, *IncreaseViewCountRequest) (*IncreaseViewCountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IncreaseViewCount not implemented")
 }
 func (UnimplementedLaptopServiceServer) SearchLaptop(*SearchLaptopRequest, LaptopService_SearchLaptopServer) error {
 	return status.Errorf(codes.Unimplemented, "method SearchLaptop not implemented")
@@ -125,6 +139,24 @@ func _LaptopService_CreateLaptop_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LaptopService_IncreaseViewCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IncreaseViewCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LaptopServiceServer).IncreaseViewCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.LaptopService/IncreaseViewCount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LaptopServiceServer).IncreaseViewCount(ctx, req.(*IncreaseViewCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _LaptopService_SearchLaptop_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SearchLaptopRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -156,6 +188,10 @@ var LaptopService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateLaptop",
 			Handler:    _LaptopService_CreateLaptop_Handler,
+		},
+		{
+			MethodName: "IncreaseViewCount",
+			Handler:    _LaptopService_IncreaseViewCount_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

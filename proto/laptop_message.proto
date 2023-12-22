@@ -50,9 +50,17 @@ message SearchLaptopResponse {
     Laptop laptop = 1;
 }
 
+message IncreaseViewCountRequest {
+    uint32 viewCount = 1;
+}
+
+message IncreaseViewCountResponse {
+    bool status = 1;
+}
+
 service LaptopService {
     rpc CreateLaptop(CreateLaptopRequest) returns (CreateLaptopResponse) {};
+    rpc IncreaseViewCount(IncreaseViewCountRequest) returns (IncreaseViewCountResponse) {};
     rpc SearchLaptop(SearchLaptopRequest) returns (stream SearchLaptopResponse) {};
-
 }
 
