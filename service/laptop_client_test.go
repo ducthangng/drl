@@ -8,6 +8,7 @@ import (
 	"github.com/ducthangng/drl/pb"
 	"github.com/ducthangng/drl/sample"
 	"github.com/ducthangng/drl/serializer"
+	"github.com/ducthangng/drl/singleton"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
@@ -29,14 +30,14 @@ func TestClientCreateLaptop(t *testing.T) {
 	}
 
 	// send request to server
-
-	res, err := laptopClient.CreateLaptop(context.Background(), req)
+	ctx := context.Background()
+	res, err := laptopClient.CreateLaptop(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Equal(t, laptop.Id, res.Id)
 
 	// check if server contain the laptop
-	other, err := laptopServer.Store.Find(laptop.Id)
+	other, err := laptopServer.Store.Find(ctx, laptop.Id)
 	require.NoError(t, err)
 	require.NotNil(t, other)
 
@@ -45,7 +46,8 @@ func TestClientCreateLaptop(t *testing.T) {
 }
 
 func startTestLaptopServer(t *testing.T) (*LaptopServer, string) {
-	laptopServer := NewLaptopServer(NewInMemoryLaptopStore())
+	redisClient := singleton.GetRedisClient()
+	laptopServer := NewLaptopServer(NewInMemoryLaptopStore(redisClient))
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterLaptopServiceServer(grpcServer, laptopServer)

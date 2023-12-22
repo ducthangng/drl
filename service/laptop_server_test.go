@@ -7,6 +7,7 @@ import (
 	"github.com/ducthangng/drl/pb"
 	"github.com/ducthangng/drl/sample"
 	"github.com/ducthangng/drl/service"
+	"github.com/ducthangng/drl/singleton"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,10 +21,11 @@ func TestServerCreateLaptop(t *testing.T) {
 
 	laptopInvalidID := sample.NewLaptop()
 	laptopInvalidID.Id = "invalid-uuid"
-
+	ctx := context.Background()
+	redis := singleton.GetRedisClient()
 	laptopDuplicateID := sample.NewLaptop()
-	storeDuplicateID := service.NewInMemoryLaptopStore()
-	err := storeDuplicateID.Save(laptopDuplicateID)
+	storeDuplicateID := service.NewInMemoryLaptopStore(redis)
+	err := storeDuplicateID.Save(ctx, laptopDuplicateID)
 	require.Nil(t, err)
 
 	testCases := []struct {
@@ -35,19 +37,19 @@ func TestServerCreateLaptop(t *testing.T) {
 		{
 			name:   "success_with_id",
 			laptop: sample.NewLaptop(),
-			store:  service.NewInMemoryLaptopStore(),
+			store:  service.NewInMemoryLaptopStore(redis),
 			code:   codes.OK,
 		},
 		{
 			name:   "success_no_id",
 			laptop: laptopNoID,
-			store:  service.NewInMemoryLaptopStore(),
+			store:  service.NewInMemoryLaptopStore(redis),
 			code:   codes.OK,
 		},
 		{
 			name:   "failure_invalid_id",
 			laptop: laptopInvalidID,
-			store:  service.NewInMemoryLaptopStore(),
+			store:  service.NewInMemoryLaptopStore(redis),
 			code:   codes.InvalidArgument,
 		},
 		{

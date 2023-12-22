@@ -6,9 +6,11 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/ducthangng/drl/pb"
 	"github.com/ducthangng/drl/sample"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,10 +18,14 @@ import (
 )
 
 func newConn(port string) *grpc.ClientConn {
-	conn, err := grpc.Dial(port, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(port, grpc.WithDefaultCallOptions(
+	// grpc.MaxCallRecvMsgSize(16*1024*1024),
+	), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
+
+	log.Println("successfully connected to ", port)
 
 	return conn
 }
@@ -36,56 +42,49 @@ func main() {
 	conns = append(conns, []Conn{
 		{
 			Title:   "server 1",
-			Address: "localhost:8080",
-			Conn:    newConn("localhost:8080"),
-		}, {
-			Title:   "server 2",
 			Address: "localhost:8081",
-			Conn:    newConn("localhost:8081"),
-		}, {
-			Title:   "server 3",
-			Address: "localhost:8082",
-			Conn:    newConn("localhost:8082"),
+			Conn:    newConn("localhost:8080"),
 		},
 	}...)
 
-	for i := range conns {
-		conns[i].Client = pb.NewLaptopServiceClient(conns[i].Conn)
-	}
-
-	count := 0
-	for i, conn := range conns {
-
-		id := string(i) + string(count)
-
-		for i := 0; i < 10; i++ {
-			count++
-			createLaptop(conn.Client, id)
+	var wg sync.WaitGroup
+	for _, conn := range conns {
+		cli := pb.NewLaptopServiceClient(conn.Conn)
+		for i := 0; i < 200; i++ {
+			wg.Add(1)
+			go func(c Conn, idx int) {
+				defer wg.Done()
+				// Sleep is generally used for simulation or debugging
+				time.Sleep(time.Duration(idx) * 100 * time.Millisecond)
+				log.Println("start requesting: ", idx)
+				createLaptop(cli, fmt.Sprintf("%d-%s", idx, uuid.NewString()))
+			}(conn, i)
 		}
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(conns))
-
-	for _, conn := range conns {
-		go func(conn Conn) {
-			defer wg.Done()
-
-			filter := &pb.Filter{
-				MaxPriceUsd: 10000,
-				MinCpuCore:  2,
-				MinCpuGhz:   1,
-				MinRam: &pb.Memory{
-					Value: 2,
-					Unit:  pb.Memory_GIGABYTE,
-				},
-			}
-
-			searchLaptop(conn.Client, filter, conn.Title)
-		}(conn)
-	}
-
 	wg.Wait()
+	fmt.Println("All create successfully")
+
+	// wg.Add(len(conns))
+	// // for _, conn := range conns {
+	// // 	go func(conn Conn) {
+	// // 		defer wg.Done()
+
+	// // 		filter := &pb.Filter{
+	// // 			MaxPriceUsd: 10000,
+	// // 			MinCpuCore:  2,
+	// // 			MinCpuGhz:   1,
+	// // 			MinRam: &pb.Memory{
+	// // 				Value: 2,
+	// // 				Unit:  pb.Memory_GIGABYTE,
+	// // 			},
+	// // 		}
+
+	// // 		searchLaptop(conn.Client, filter, conn.Title)
+	// // 	}(conn)
+	// // }
+
+	// // wg.Wait()
 	fmt.Println("All requests completed")
 }
 
@@ -112,7 +111,8 @@ func searchLaptop(laptopClient pb.LaptopServiceClient, filter *pb.Filter, id str
 		}
 
 		if err != nil {
-			panic(err)
+			log.Println("unexpected error: ", err)
+			continue
 		}
 
 		laptop := res.GetLaptop()

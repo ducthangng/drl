@@ -1,0 +1,31 @@
+// rate_limiter.proto
+
+syntax = "proto3";
+
+package bucket;
+option go_package = "./pb";
+
+service RateLimiterService {
+    // Method to assign a new master node
+    rpc AssignNewMaster(AssignMasterRequest) returns (AssignMasterResponse);
+
+    rpc PingMaster(PingRequest) returns (PingResponse);
+
+}
+
+message AssignMasterRequest {
+    string newMasterID = 1;
+}
+
+message AssignMasterResponse {
+    bool success = 1;
+}
+
+message PingRequest {
+    // Any required fields, if necessary
+    string clientId = 1;
+}
+
+message PingResponse {
+    bool isHealthy = 1;
+}

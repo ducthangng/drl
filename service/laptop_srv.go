@@ -23,6 +23,8 @@ func NewLaptopServer(store LaptopStore) *LaptopServer {
 }
 
 func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
+	log.Println("got request to create laptop")
+
 	laptop := req.GetLaptop()
 	log.Printf("receive request with id: %s", laptop.Id[:5])
 
@@ -39,7 +41,7 @@ func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLapt
 	// check if the store already have that laptop
 	// if found, return already-exists error
 	// if not found, save the laptop to the store
-	dbLaptop, err := server.Store.Find(laptop.Id)
+	dbLaptop, err := server.Store.Find(ctx, laptop.Id)
 	if err != nil {
 		return nil, fmt.Errorf("cannot find laptop: %w", err)
 	}
@@ -48,10 +50,11 @@ func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLapt
 		return nil, status.Errorf(codes.AlreadyExists, "laptop with id already exists: %s", laptop.Id)
 	}
 
-	if err := server.Store.Save(laptop); err != nil {
+	if err := server.Store.Save(ctx, laptop); err != nil {
 		return nil, fmt.Errorf("cannot save laptop to the store: %w", err)
 	}
 
+	log.Println("done request: ", laptop.Id)
 	return &pb.CreateLaptopResponse{
 		Id: laptop.Id,
 	}, nil

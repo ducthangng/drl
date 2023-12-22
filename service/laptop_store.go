@@ -2,33 +2,34 @@ package service
 
 import (
 	"context"
-	"errors"
-	"log"
 	"sync"
-	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/ducthangng/drl/pb"
+	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/copier"
 )
 
 type LaptopStore interface {
-	Save(laptop *pb.Laptop) error
-	Find(id string) (*pb.Laptop, error)
+	Save(ctx context.Context, laptop *pb.Laptop) error
+	Find(ctx context.Context, id string) (*pb.Laptop, error)
 	Search(ctx context.Context, filter *pb.Filter, found func(laptop *pb.Laptop) error) error
 }
 
 type InMemoryLaptopStore struct {
-	mutex   sync.RWMutex
-	laptops map[string]*pb.Laptop
+	mutex       sync.RWMutex
+	redisClient *redis.Client
+	laptops     map[string]*pb.Laptop
 }
 
-func NewInMemoryLaptopStore() *InMemoryLaptopStore {
+func NewInMemoryLaptopStore(redisClient *redis.Client) *InMemoryLaptopStore {
 	return &InMemoryLaptopStore{
-		laptops: make(map[string]*pb.Laptop),
+		laptops:     make(map[string]*pb.Laptop),
+		redisClient: redisClient,
 	}
 }
 
-func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
+func (store *InMemoryLaptopStore) Save(ctx context.Context, laptop *pb.Laptop) error {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 
@@ -37,11 +38,21 @@ func (store *InMemoryLaptopStore) Save(laptop *pb.Laptop) error {
 		return err
 	}
 
-	store.laptops[laptop.Id] = other
+	// store.laptops[laptop.Id] = other
+	// store to redis
+	data, err := sonic.MarshalString(laptop)
+	if err != nil {
+		return err
+	}
+
+	if err = store.redisClient.Set(ctx, "laptop:"+laptop.Id, data, 0).Err(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (store *InMemoryLaptopStore) Find(id string) (*pb.Laptop, error) {
+func (store *InMemoryLaptopStore) Find(ctx context.Context, id string) (*pb.Laptop, error) {
 
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
@@ -63,16 +74,52 @@ func (store *InMemoryLaptopStore) Search(ctx context.Context, filter *pb.Filter,
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
-	for _, laptop := range store.laptops {
+	var allKeys []string
+	var cursor uint64
+	var err error
 
-		if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
-			log.Print("context is cancelled")
-			return errors.New("context is cancelled")
+	// have a go routine to check if context is time out
+	// errChan := make(chan error, 1)
+	// done := make(chan bool, 1)
+
+	// go func() {
+	// 	<-ctx.Done()
+	// 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	// 		log.Print("context is cancelled")
+	// 		errChan <- ctx.Err()
+	// 	}
+	// }()
+
+	// Iterate through all keys in the Redis database
+	for {
+		var keys []string
+		keys, cursor, err = store.redisClient.Scan(ctx, cursor, "*", 0).Result()
+		if err != nil {
+			return err
+		}
+
+		allKeys = append(allKeys, keys...)
+
+		// If the cursor returned is 0, it means we have iterated through all the keys
+		if cursor == 0 {
+			break
+		}
+	}
+
+	// retrive all keys successfully
+	for _, key := range allKeys {
+		var laptop *pb.Laptop
+		var laptopStr string
+		laptopStr, err = store.redisClient.Get(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+
+		if err = sonic.UnmarshalString(laptopStr, laptop); err != nil {
+			return err
 		}
 
 		if isQualified(laptop, filter) {
-			time.Sleep(5 * time.Second)
-
 			other := &pb.Laptop{}
 			if err := copier.Copy(other, laptop); err != nil {
 				return err
@@ -83,6 +130,15 @@ func (store *InMemoryLaptopStore) Search(ctx context.Context, filter *pb.Filter,
 			}
 		}
 	}
+
+	// close(done)
+
+	// select {
+	// case err := <-errChan:
+	// 	return err
+	// case <-done:
+	// 	return nil
+	// }
 
 	return nil
 }
