@@ -1,3 +1,0 @@
-// testing purpose
-
-package bucket
