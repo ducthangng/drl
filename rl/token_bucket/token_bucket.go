@@ -48,7 +48,6 @@ func (node *RateLimiterNode) refillTokens() {
 		case changed := <-node.TickerChanged:
 			if changed {
 				log.Println("UPDATE TICKER START ", node.RefillRate)
-
 				ticker.Stop()
 				node.Mutex.Lock()
 				log.Println("UPDATE TICKER MIDDLE ", node.RefillRate)

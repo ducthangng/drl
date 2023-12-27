@@ -22,6 +22,10 @@ func NewLaptopServer(store LaptopStore) *LaptopServer {
 	}
 }
 
+func accepted(codes.Code) bool {
+	return true
+}
+
 func (server *LaptopServer) CreateLaptop(ctx context.Context, req *pb.CreateLaptopRequest) (*pb.CreateLaptopResponse, error) {
 	log.Println("got request to create laptop")
 
